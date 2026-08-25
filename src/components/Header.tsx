@@ -1,0 +1,86 @@
+import { useRef } from 'react'
+
+export type Tab = 'assessment' | 'dashboard' | 'roadmap'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'assessment', label: 'Assessment' },
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'roadmap', label: 'Roadmap' },
+]
+
+interface Props {
+  tab: Tab
+  onTabChange: (tab: Tab) => void
+  onExport: () => void
+  onImport: (file: File) => void
+  onReset: () => void
+  answeredCount: number
+  totalCount: number
+}
+
+export default function Header({ tab, onTabChange, onExport, onImport, onReset, answeredCount, totalCount }: Props) {
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  return (
+    <header className="sticky top-0 z-10 border-b border-black/5 bg-white/80 backdrop-blur-xl">
+      <div className="mx-auto max-w-6xl px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-[17px] font-semibold tracking-tight text-gray-900">
+              PDPPL Compliance Assessment
+            </h1>
+            <p className="text-xs text-gray-400">
+              {answeredCount}/{totalCount} controls answered
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) onImport(f)
+                e.target.value = ''
+              }}
+            />
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="rounded-xl bg-black/5 px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-black/10"
+            >
+              Import Excel
+            </button>
+            <button
+              onClick={onExport}
+              className="rounded-xl bg-black/5 px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-black/10"
+            >
+              Export Excel
+            </button>
+            <button
+              onClick={onReset}
+              className="rounded-xl px-3.5 py-2 text-sm font-medium text-google-red transition hover:bg-google-red/10"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <nav className="mt-3 flex gap-1 rounded-xl bg-black/5 p-1 w-fit">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => onTabChange(t.id)}
+              className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+                tab === t.id ? 'bg-white text-gray-900 shadow-apple-sm' : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+    </header>
+  )
+}
