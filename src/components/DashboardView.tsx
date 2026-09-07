@@ -9,13 +9,19 @@ import { exportElementAsPdf } from '../lib/exportImage'
 interface Props {
   overall: OverallStats
   domainStats: DomainStats[]
+  signedIn: boolean
+  onRequireSignIn: () => void
 }
 
-export default function DashboardView({ overall, domainStats }: Props) {
+export default function DashboardView({ overall, domainStats, signedIn, onRequireSignIn }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const [busy, setBusy] = useState(false)
 
   async function handleExport() {
+    if (!signedIn) {
+      onRequireSignIn()
+      return
+    }
     if (!ref.current) return
     setBusy(true)
     try {
@@ -35,9 +41,10 @@ export default function DashboardView({ overall, domainStats }: Props) {
         <button
           onClick={handleExport}
           disabled={busy}
+          title={signedIn ? undefined : 'Sign in to download'}
           className="rounded-xl bg-google-blue px-4 py-2 text-sm font-medium text-white shadow-apple-sm transition hover:bg-google-blue-dark disabled:opacity-50"
         >
-          {busy ? 'Exporting…' : 'Download PDF'}
+          {busy ? 'Exporting…' : signedIn ? 'Download PDF' : 'Sign in to download PDF'}
         </button>
       </div>
 

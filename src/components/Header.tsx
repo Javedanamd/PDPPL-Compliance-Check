@@ -44,6 +44,7 @@ export default function Header({
   onSignOutClick,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const signedIn = !!userEmail
 
   return (
     <header className="sticky top-0 z-10 border-b border-black/5 bg-white/80 backdrop-blur-xl">
@@ -83,10 +84,12 @@ export default function Header({
               Import Excel
             </button>
             <button
-              onClick={onExport}
-              className="rounded-xl bg-black/5 px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-black/10"
+              onClick={signedIn ? onExport : onSignInClick}
+              title={signedIn ? undefined : 'Sign in to export'}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-black/5 px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-black/10"
             >
               Export Excel
+              {!signedIn && <LockIcon />}
             </button>
             <button
               onClick={onReset}
@@ -133,5 +136,14 @@ export default function Header({
         </nav>
       </div>
     </header>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <rect x="2.5" y="5.5" width="7" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
   )
 }

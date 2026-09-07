@@ -141,8 +141,22 @@ export default function App() {
         {tab === 'assessment' && (
           <AssessmentView answers={answers} domainStats={domainStats} onChange={handleAnswerChange} />
         )}
-        {tab === 'dashboard' && <DashboardView overall={overall} domainStats={domainStats} />}
-        {tab === 'roadmap' && <RoadmapView items={roadmap} onEdit={handleRoadmapEdit} />}
+        {tab === 'dashboard' && (
+          <DashboardView
+            overall={overall}
+            domainStats={domainStats}
+            signedIn={!!userId}
+            onRequireSignIn={() => setShowAuthModal(true)}
+          />
+        )}
+        {tab === 'roadmap' && (
+          <RoadmapView
+            items={roadmap}
+            onEdit={handleRoadmapEdit}
+            signedIn={!!userId}
+            onRequireSignIn={() => setShowAuthModal(true)}
+          />
+        )}
       </main>
 
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}

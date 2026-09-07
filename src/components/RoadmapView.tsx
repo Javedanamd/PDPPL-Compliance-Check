@@ -7,9 +7,11 @@ import RoadmapItemCard from './RoadmapItemCard'
 interface Props {
   items: RoadmapItem[]
   onEdit: (controlId: string, edit: RoadmapEdit) => void
+  signedIn: boolean
+  onRequireSignIn: () => void
 }
 
-export default function RoadmapView({ items, onEdit }: Props) {
+export default function RoadmapView({ items, onEdit, signedIn, onRequireSignIn }: Props) {
   const [domainFilter, setDomainFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
 
@@ -34,11 +36,12 @@ export default function RoadmapView({ items, onEdit }: Props) {
           </p>
         </div>
         <button
-          onClick={() => exportRoadmapToExcel(items)}
+          onClick={() => (signedIn ? exportRoadmapToExcel(items) : onRequireSignIn())}
           disabled={items.length === 0}
+          title={signedIn ? undefined : 'Sign in to download'}
           className="rounded-xl bg-google-blue px-4 py-2 text-sm font-medium text-white shadow-apple-sm transition hover:bg-google-blue-dark disabled:opacity-40"
         >
-          Download Roadmap (Excel)
+          {signedIn ? 'Download Roadmap (Excel)' : 'Sign in to download Roadmap'}
         </button>
       </div>
 
