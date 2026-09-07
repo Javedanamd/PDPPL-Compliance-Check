@@ -1,12 +1,20 @@
 import { useRef } from 'react'
 
 export type Tab = 'assessment' | 'dashboard' | 'roadmap'
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'assessment', label: 'Assessment' },
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'roadmap', label: 'Roadmap' },
 ]
+
+const SAVE_STATUS_LABEL: Record<SaveStatus, string> = {
+  idle: '',
+  saving: 'Saving…',
+  saved: 'Saved to your account',
+  error: 'Could not save — check connection',
+}
 
 interface Props {
   tab: Tab
@@ -16,9 +24,25 @@ interface Props {
   onReset: () => void
   answeredCount: number
   totalCount: number
+  userEmail: string | null
+  saveStatus: SaveStatus
+  onSignInClick: () => void
+  onSignOutClick: () => void
 }
 
-export default function Header({ tab, onTabChange, onExport, onImport, onReset, answeredCount, totalCount }: Props) {
+export default function Header({
+  tab,
+  onTabChange,
+  onExport,
+  onImport,
+  onReset,
+  answeredCount,
+  totalCount,
+  userEmail,
+  saveStatus,
+  onSignInClick,
+  onSignOutClick,
+}: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
 
   return (
@@ -31,6 +55,12 @@ export default function Header({ tab, onTabChange, onExport, onImport, onReset, 
             </h1>
             <p className="text-xs text-gray-400">
               {answeredCount}/{totalCount} controls answered
+              {userEmail && saveStatus !== 'idle' && (
+                <span className={saveStatus === 'error' ? 'text-google-red' : ''}>
+                  {' '}
+                  · {SAVE_STATUS_LABEL[saveStatus]}
+                </span>
+              )}
             </p>
           </div>
 
@@ -64,6 +94,27 @@ export default function Header({ tab, onTabChange, onExport, onImport, onReset, 
             >
               Reset
             </button>
+
+            <span className="mx-1 h-5 w-px bg-black/10" />
+
+            {userEmail ? (
+              <div className="flex items-center gap-2">
+                <span className="hidden text-sm text-gray-600 sm:inline">{userEmail}</span>
+                <button
+                  onClick={onSignOutClick}
+                  className="rounded-xl bg-black/5 px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-black/10"
+                >
+                  Sign out
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={onSignInClick}
+                className="rounded-xl bg-google-blue px-3.5 py-2 text-sm font-medium text-white transition hover:bg-google-blue-dark"
+              >
+                Sign in to save
+              </button>
+            )}
           </div>
         </div>
 

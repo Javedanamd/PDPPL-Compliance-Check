@@ -1,4 +1,4 @@
-import html2canvas from 'html2canvas'
+import html2canvas from 'html2canvas-pro'
 import jsPDF from 'jspdf'
 
 async function captureElement(el: HTMLElement) {
@@ -7,14 +7,6 @@ async function captureElement(el: HTMLElement) {
     scale: 2,
     useCORS: true,
   })
-}
-
-export async function exportElementAsPng(el: HTMLElement, fileName = 'PDPPL-Dashboard.png') {
-  const canvas = await captureElement(el)
-  const link = document.createElement('a')
-  link.download = fileName
-  link.href = canvas.toDataURL('image/png')
-  link.click()
 }
 
 export async function exportElementAsPdf(el: HTMLElement, fileName = 'PDPPL-Dashboard.pdf') {
