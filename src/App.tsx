@@ -3,7 +3,15 @@ import type { Answer, AnswersMap, RoadmapEdit, RoadmapEditsMap } from './types'
 import { CONTROLS } from './data/controls'
 import { computeDomainStats, computeOverallStats } from './lib/aggregate'
 import { generateRoadmap } from './lib/roadmap'
-import { loadAnswers, loadRoadmapEdits, saveAnswers, saveRoadmapEdits, clearAll } from './lib/storage'
+import {
+  loadAnswers,
+  loadAutosavePref,
+  loadRoadmapEdits,
+  saveAnswers,
+  saveAutosavePref,
+  saveRoadmapEdits,
+  clearAll,
+} from './lib/storage'
 import { exportAssessmentToExcel, importAssessmentFromExcel } from './lib/excel'
 import { loadCloudAssessment, saveCloudAssessment } from './lib/cloudStore'
 import { isSupabaseConfigured } from './lib/supabaseClient'
@@ -27,12 +35,15 @@ export default function App() {
 
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+  const [autosaveEnabled, setAutosaveEnabled] = useState<boolean>(() => loadAutosavePref())
+  const [dirty, setDirty] = useState(false)
   const syncingRef = useRef(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const loadedForUserRef = useRef<string | null>(null)
 
   useEffect(() => saveAnswers(answers), [answers])
   useEffect(() => saveRoadmapEdits(roadmapEdits), [roadmapEdits])
+  useEffect(() => saveAutosavePref(autosaveEnabled), [autosaveEnabled])
 
   // When a user signs in, load their saved cloud assessment (or, if this is
   // their first time saving, adopt whatever's currently in local storage).
@@ -49,6 +60,7 @@ export default function App() {
           await saveCloudAssessment(userId, answers, roadmapEdits)
         }
         setSaveStatus('saved')
+        setDirty(false)
       })
       .catch(() => setSaveStatus('error'))
       .finally(() => {
@@ -63,24 +75,35 @@ export default function App() {
     if (!userId) {
       loadedForUserRef.current = null
       setSaveStatus('idle')
+      setDirty(false)
     }
   }, [userId])
 
-  // Debounced autosave to Supabase whenever answers/roadmap edits change,
-  // as long as we're not mid-way through loading a freshly signed-in user.
+  // Debounced autosave to Supabase whenever answers/roadmap edits change --
+  // only while autosave is on, and not mid-way through loading a freshly
+  // signed-in user.
   useEffect(() => {
-    if (!userId || syncingRef.current) return
+    if (!userId || syncingRef.current || !autosaveEnabled) return
     setSaveStatus('saving')
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
       saveCloudAssessment(userId, answers, roadmapEdits)
-        .then(() => setSaveStatus('saved'))
+        .then(() => {
+          setSaveStatus('saved')
+          setDirty(false)
+        })
         .catch(() => setSaveStatus('error'))
     }, SAVE_DEBOUNCE_MS)
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     }
-  }, [answers, roadmapEdits, userId])
+  }, [answers, roadmapEdits, userId, autosaveEnabled])
+
+  // While autosave is off, reflect whether there are unsaved changes instead.
+  useEffect(() => {
+    if (!userId || autosaveEnabled) return
+    setSaveStatus(dirty ? 'unsaved' : 'saved')
+  }, [dirty, autosaveEnabled, userId])
 
   const domainStats = useMemo(() => computeDomainStats(answers), [answers])
   const overall = useMemo(() => computeOverallStats(domainStats), [domainStats])
@@ -90,18 +113,33 @@ export default function App() {
 
   function handleAnswerChange(controlId: string, answer: Answer) {
     setAnswers((prev) => ({ ...prev, [controlId]: answer }))
+    setDirty(true)
   }
 
   function handleRoadmapEdit(controlId: string, edit: RoadmapEdit) {
     setRoadmapEdits((prev) => ({ ...prev, [controlId]: { ...prev[controlId], ...edit } }))
+    setDirty(true)
   }
 
   async function handleImport(file: File) {
     try {
       const imported = await importAssessmentFromExcel(file)
       setAnswers((prev) => ({ ...prev, ...imported }))
+      setDirty(true)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Could not import this file.')
+    }
+  }
+
+  async function handleManualSave() {
+    if (!userId || !dirty) return
+    setSaveStatus('saving')
+    try {
+      await saveCloudAssessment(userId, answers, roadmapEdits)
+      setSaveStatus('saved')
+      setDirty(false)
+    } catch {
+      setSaveStatus('error')
     }
   }
 
@@ -110,6 +148,7 @@ export default function App() {
     clearAll()
     setAnswers({})
     setRoadmapEdits({})
+    setDirty(false)
   }
 
   return (
@@ -126,6 +165,10 @@ export default function App() {
         saveStatus={saveStatus}
         onSignInClick={() => setShowAuthModal(true)}
         onSignOutClick={() => signOut()}
+        autosaveEnabled={autosaveEnabled}
+        onToggleAutosave={() => setAutosaveEnabled((v) => !v)}
+        onManualSave={handleManualSave}
+        canManualSave={dirty && saveStatus !== 'saving'}
       />
 
       {!isSupabaseConfigured && (
